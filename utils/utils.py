@@ -17,6 +17,7 @@ def setup():
     yield driver
     driver.quit()
 
+
 def take_screenshot(driver):
     test_name = inspect.currentframe().f_back.f_code.co_name  # GET THE FUNCTION NAME
     screenshot_name = f"screenshots/{test_name}_{int(time.time())}.png"
