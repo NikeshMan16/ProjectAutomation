@@ -52,14 +52,32 @@ def test_navigation_from_cart_to_inventory(setup):
         print(f"Assertion failed: {e}")
         pytest.fail(str(e))
 
-# def add_to_cart_button_functionality(setup):
+def test_add_to_cart_items_count(setup):
+    driver = setup
+    driver.get("https://www.saucedemo.com/inventory.html")
+    time.sleep(2)
+    # Find all "Add to cart" buttons
+    add_to_cart_buttons = driver.find_elements(By.XPATH, "//button[contains(text(),'Add to cart')]")
+    expected_count = len(add_to_cart_buttons)  # Get the number of available products
+    for button in add_to_cart_buttons:   # Click all "Add to Cart" buttons
+        button.click()
+        time.sleep(1)  # Ensure UI updates
+    cart_badge = driver.find_element(By.CLASS_NAME, "shopping_cart_badge").text # Retrieve and validate cart count
+    actual_count = int(cart_badge)
+    try:
+        assert actual_count == expected_count, f"Expected {expected_count} items in cart, but found {actual_count}"
+    except AssertionError as e:
+        take_screenshot(driver)
+        pytest.fail(str(e))
+
+#
+# def test_verify_added_cart_items(setup):
 #     driver = setup
 #     driver.get("https://www.saucedemo.com/inventory.html")
 #     time.sleep(2)
-#     add_to_cart_buttons = driver.find_elements(By.XPATH,"//button[contains(text(),'Add to cart')]")
-#     for button in add_to_cart_buttons:
-#         button.click()
-#         time.sleep(1)
 #
+
+
+
 
 
