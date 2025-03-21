@@ -34,19 +34,15 @@ usernames = [
 def test_login_valid_user(setup, test_case_id, username):
     driver = setup
     password = "secret_sauce"
-
     try:
         un = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'user-name')))
         un.clear()  # Clear field before entering data
         un.send_keys(username)
         time.sleep(2)
-
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'password'))).send_keys(password)
         time.sleep(2)
-
         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'login-button'))).click()
         time.sleep(3)
-
         assert "inventory" in driver.current_url, f"Failed Login for {test_case_id}"
 
     except AssertionError as e:
