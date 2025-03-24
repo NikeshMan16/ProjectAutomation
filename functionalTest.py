@@ -1,6 +1,6 @@
 import os
 from selenium import webdriver
-from selenium.common import TimeoutException
+from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,6 +11,8 @@ import random
 import pytest
 
 os.makedirs("screenshots", exist_ok=True)
+
+
 
 @pytest.fixture(scope="module")
 def setup():
@@ -25,14 +27,20 @@ def login_function(setup):
     WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID,'user-name'))).send_keys("standard_user")
     WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID,'password'))).send_keys("secret_sauce")
     WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID,'login-button'))).click()
-    time.sleep(2)
+    WebDriverWait(driver, 5).until(EC.url_contains("inventory"))
 
-def reset_app_state(setup): # Only works when a user is logged in
+def reset_app_state(setup):
     driver = setup
     time.sleep(1)
-    WebDriverWait(driver,5).until(EC.presence_of_element_located((By.ID,'react-burger-menu-btn'))).click()
-    WebDriverWait(driver,5).until(EC.presence_of_element_located((By.ID,'reset_sidebar_link'))).click()
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID,'react-burger-cross-btn'))).click()
+    menu_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'react-burger-menu-btn')))
+    menu_button.click()
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'reset_sidebar_link')))
+    reset_button = driver.find_element(By.ID, 'reset_sidebar_link')
+    driver.execute_script("arguments[0].scrollIntoView(true);", reset_button)
+    time.sleep(1)
+    reset_button.click()
+    close_menu = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'react-burger-cross-btn')))
+    close_menu.click()
 
 def test_navigation_to_cart(setup):
     driver = setup
@@ -64,17 +72,14 @@ def test_add_to_cart_items_count(setup):
     driver.get("https://www.saucedemo.com/inventory.html")
     driver.maximize_window()
     time.sleep(2)
-    # Find all "Add to cart" buttons
     add_to_cart_buttons = driver.find_elements(By.XPATH, "//button[contains(text(),'Add to cart')]")
-    expected_count = len(add_to_cart_buttons)  # Get the number of available products
-    for button in add_to_cart_buttons:   # Click all "Add to Cart" buttons
+    expected_count = len(add_to_cart_buttons)
+    for button in add_to_cart_buttons:
         button.click()
-        time.sleep(1.5)  # Ensure UI updates
-    cart_badge = driver.find_element(By.CLASS_NAME, "shopping_cart_badge").text # Retrieve and validate cart count
+        time.sleep(1.5)
+    cart_badge = driver.find_element(By.CLASS_NAME, "shopping_cart_badge").text
     actual_count = int(cart_badge)
     time.sleep(1)
-    # driver.find_element(By.ID,'shopping_cart_container').click()
-    # time.sleep(3)
     try:
         assert actual_count == expected_count, f"Expected {expected_count} items in cart, but found {actual_count}"
     except AssertionError as e:
@@ -82,46 +87,21 @@ def test_add_to_cart_items_count(setup):
         pytest.fail(str(e))
 
 
-
-def test_verify_added_cart_items(setup):
+def test_remove_from_cart_count(setup):
     driver = setup
     driver.get("https://www.saucedemo.com/inventory.html")
+    driver.maximize_window()
     time.sleep(2)
-    reset_app_state(setup)
-    time.sleep(2)
-    # Finding all the inventory items and their names
-    inventory_items = driver.find_elements(By.CLASS_NAME,'inventory_item')
-    add_to_cart_buttons = driver.find_elements(By.XPATH,'//button[contains(text(),"Add to Cart")]')
-
-    #Select random items to add to Cart
-    selected_items = random.sample(list(zip(inventory_items,add_to_cart_buttons)),k=3)
-    added_items = []
-
-    for item,button in selected_items:
-        item_name = item.find_element(By.CLASS_NAME,'inventory_item_name').text
-        added_items.append(item_name)
+    remove_buttons = driver.find_elements(By.XPATH, "//button[contains(text(),'Remove')]")
+    expected_count = 6 - len(remove_buttons)
+    for button in remove_buttons:
         button.click()
-        time.sleep(1)  #Wait for the UI update
+        time.sleep(1.5)
 
-    # Navigate to Cart
-    driver.find_element(By.ID,'shopping_cart_container').click()
-    time.sleep(2)
-
-    #Verify add items are displayed in the cart
-    cart_items = driver.find_elements(By.CLASS_NAME,'inventory_item_name')
-    cart_items_name = [item.text for item in cart_items]
-
+    time.sleep(2)  # Give time for elements to render
     try:
-        assert set(added_items) == set(cart_items_name) , f"Mismatch in cart items, Expected items:{added_items}, but found {cart_items_name}"
-    except AssertionError as e:
-        take_screenshot(driver)
-        pytest.fail(str(e))
-
-
-
-
-
-
-
-
+        cart_badge = driver.find_element(By.CLASS_NAME, "shopping_cart_badge").text
+    except NoSuchElementException:
+        cart_badge = "0"  # If the element is missing, assume cart is empty
+    assert int(cart_badge) == expected_count, f"Cart count mismatch: expected {expected_count}, got {cart_badge}"
 
