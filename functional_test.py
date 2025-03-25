@@ -105,3 +105,8 @@ def test_remove_from_cart_count(setup):
         cart_badge = "0"  # If the element is missing, assume cart is empty
     assert int(cart_badge) == expected_count, f"Cart count mismatch: expected {expected_count}, got {cart_badge}"
 
+    time.sleep(8)
+
+def test_verify_cart_items(setup):
+    driver = setup
+
