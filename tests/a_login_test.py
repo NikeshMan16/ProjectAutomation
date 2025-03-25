@@ -10,11 +10,11 @@ import time
 
 from utils.utils import take_screenshot
 
-os.makedirs("screenshots", exist_ok=True)
+os.makedirs("../screenshots", exist_ok=True)
 
 @pytest.fixture(scope="module")
 def setup():
-    service = Service("driver/chromedriver.exe")
+    service = Service("../driver/chromedriver.exe")
     driver = webdriver.Chrome(service=service)
     driver.get("https://www.saucedemo.com/")
     yield driver
