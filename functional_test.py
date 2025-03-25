@@ -103,36 +103,34 @@ def test_remove_from_cart_count(setup):
 
     time.sleep(8)
 
-def test_verify_cart_items(setup):
+
+def test_verify_added_cart_items(setup):
     driver = setup
     driver.get("https://www.saucedemo.com/inventory.html")
     time.sleep(2)
     reset_app_state(setup)
     time.sleep(2)
-    inventory_items = driver.find_elements(By.CLASS_NAME,'inventory_item')
-    add_to_cart_buttons = driver.find_elements(By.CLASS_NAME,'//button[contains(text(),"Add to Cart")]')
+    inventory_items = driver.find_elements(By.CLASS_NAME, 'inventory_item')
+    add_to_cart_buttons = driver.find_elements(By.XPATH, '//button[contains(text(),"Add to cart")]')
 
-    if len(inventory_items) >= 3 and len(add_to_cart_buttons) >= 3:
-        selected_items = random.sample(list(zip(inventory_items,add_to_cart_buttons)), k=3)
+    if len(inventory_items) >= 2 and len(add_to_cart_buttons) >= 2:
+        selected_items = random.sample(list(zip(inventory_items, add_to_cart_buttons)), k=2)
     else:
         pytest.fail("Not enough inventory items found on the page.")
-
-    selected_items_name = []
+    selected_item_names = []
     for item, button in selected_items:
-        item_name = item.find_element(By.CLASS_NAME,"inventory_name").text
-        selected_items_name.append(item_name)
+        item_name = item.find_element(By.CLASS_NAME, "inventory_item_name").text
+        selected_item_names.append(item_name)
         button.click()
         time.sleep(1)
-
-    #Navigation to cart page
-    driver.find_element(By.CLASS_NAME,'shopping_cart_link').click()
-    #Extract item names from the cart
-    cart_items = driver.find_elements(By.CLASS_NAME,'inventory_item_name')
+    # Navigate to cart page
+    driver.find_element(By.CLASS_NAME, "shopping_cart_link").click()
+    time.sleep(2)
+    # Extract item names from the cart
+    cart_items = driver.find_elements(By.CLASS_NAME, "inventory_item_name")
     cart_item_names = [item.text for item in cart_items]
-
-    #Assert the selected items match the cart items
-    assert set(selected_items_name) == set(cart_item_names), f"Mismatch: Expected {selected_items_name}, but got {cart_item_names}"
-
-
+    # Assert the selected items match the cart items
+    assert set(selected_item_names) == set(
+        cart_item_names), f"Mismatch: Expected {selected_item_names}, but got {cart_item_names}"
 
 
