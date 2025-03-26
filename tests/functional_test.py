@@ -153,7 +153,6 @@ def test_display_order_price_high_to_low(setup):
         WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CLASS_NAME,'select_container')))
         filer_dropdown = Select(driver.find_element(By.CLASS_NAME,'product_sort_container'))
         filer_dropdown.select_by_visible_text("Price (high to low)")
-
         price_elements = driver.find_elements(By.CLASS_NAME,'inventory_item_price')
         prices = [float(price.text.replace("$","")) for price in price_elements]
         try:
@@ -162,9 +161,46 @@ def test_display_order_price_high_to_low(setup):
             print(f"Assertion failed: {e}")
             take_screenshot(driver)
             pytest.fail(str(e))
-
     except TimeoutException:
         pytest.fail("Timeout has occurred.")
-
     logout_function(setup)
 
+
+def test_display_order_reverse_alphabetical(setup):
+    driver = setup
+    login_function(setup)
+    try:
+        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CLASS_NAME,'select_container')))
+        filer_dropdown = Select(driver.find_element(By.CLASS_NAME,'product_sort_container'))
+        filer_dropdown.select_by_visible_text("Name (Z to A)")
+        name_elements = driver.find_elements(By.CLASS_NAME,'inventory_item_name ')
+        names = [name.text for name in name_elements]
+        try:
+            assert names == sorted(names, reverse=True),"Ordering of the items according to Name(high to A) failed"
+        except AssertionError as e:
+            print(f"Assertion failed: {e}")
+            take_screenshot(driver)
+            pytest.fail(str(e))
+    except TimeoutException:
+        pytest.fail("Timeout has occurred.")
+    logout_function(setup)
+
+
+def test_display_order_alphabetical(setup):
+    driver = setup
+    login_function(setup)
+    try:
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CLASS_NAME, 'select_container')))
+        filer_dropdown = Select(driver.find_element(By.CLASS_NAME, 'product_sort_container'))
+        filer_dropdown.select_by_visible_text("Name (Z to A)")
+        name_elements = driver.find_elements(By.CLASS_NAME, 'inventory_item_name ')
+        names = [name.text for name in name_elements]
+        try:
+            assert names == sorted(names), "Ordering of the items according to Name(high to A) failed"
+        except AssertionError as e:
+            print(f"Assertion failed: {e}")
+            take_screenshot(driver)
+            pytest.fail(str(e))
+    except TimeoutException:
+        pytest.fail("Timeout has occurred.")
+    logout_function(setup)
