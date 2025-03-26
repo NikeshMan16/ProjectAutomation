@@ -3,10 +3,11 @@ from selenium import webdriver
 from selenium.common import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
-from utils.utils import take_screenshot
+from utils import take_screenshot, login_function, logout_function, reset_app_state
 import random
 import pytest
 os.makedirs("../screenshots", exist_ok=True)
@@ -19,25 +20,6 @@ def setup():
     yield driver
     driver.quit()
 
-def login_function(setup):
-    driver = setup
-    WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID,'user-name'))).send_keys("standard_user")
-    WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID,'password'))).send_keys("secret_sauce")
-    WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID,'login-button'))).click()
-    WebDriverWait(driver, 5).until(EC.url_contains("inventory"))
-
-def reset_app_state(setup):
-    driver = setup
-    time.sleep(1)
-    menu_button = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'react-burger-menu-btn')))
-    menu_button.click()
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'reset_sidebar_link')))
-    reset_button = driver.find_element(By.ID, 'reset_sidebar_link')
-    driver.execute_script("arguments[0].scrollIntoView(true);", reset_button)
-    time.sleep(1)
-    reset_button.click()
-    close_menu = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID, 'react-burger-cross-btn')))
-    close_menu.click()
 
 def test_navigation_to_cart(setup):
     driver = setup
@@ -51,9 +33,11 @@ def test_navigation_to_cart(setup):
         print(f"Assertion Failed : {e}")
         take_screenshot(driver)
         pytest.fail(str(e))
+    logout_function(setup)
 
 def test_navigation_from_cart_to_inventory(setup):
     driver = setup
+    login_function(setup)
     driver.get("https://www.saucedemo.com/cart.html")
     time.sleep(2)
     WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.ID,'continue-shopping'))).click()
@@ -63,9 +47,11 @@ def test_navigation_from_cart_to_inventory(setup):
     except AssertionError as e:
         print(f"Assertion failed: {e}")
         pytest.fail(str(e))
+    logout_function(setup)
 
 def test_add_to_cart_items_count(setup):
     driver = setup
+    login_function(setup)
     driver.get("https://www.saucedemo.com/inventory.html")
     driver.maximize_window()
     time.sleep(2)
@@ -82,9 +68,11 @@ def test_add_to_cart_items_count(setup):
     except AssertionError as e:
         take_screenshot(driver)
         pytest.fail(str(e))
+    logout_function(setup)
 
 def test_remove_from_cart_count(setup):
     driver = setup
+    login_function(setup)
     driver.get("https://www.saucedemo.com/inventory.html")
     driver.maximize_window()
     time.sleep(2)
@@ -100,12 +88,13 @@ def test_remove_from_cart_count(setup):
     except NoSuchElementException:
         cart_badge = "0"  # If the element is missing, assume cart is empty
     assert int(cart_badge) == expected_count, f"Cart count mismatch: expected {expected_count}, got {cart_badge}"
-
-    time.sleep(8)
+    logout_function(setup)
+    time.sleep(2)
 
 
 def test_verify_added_cart_items(setup):
     driver = setup
+    login_function(setup)
     driver.get("https://www.saucedemo.com/inventory.html")
     time.sleep(2)
     reset_app_state(setup)
@@ -132,5 +121,50 @@ def test_verify_added_cart_items(setup):
     # Assert the selected items match the cart items
     assert set(selected_item_names) == set(
         cart_item_names), f"Mismatch: Expected {selected_item_names}, but got {cart_item_names}"
+    logout_function(setup)
 
+
+def test_display_order_price_low_to_high(setup):
+    driver = setup
+    login_function(setup)
+    try:
+        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CLASS_NAME,'select_container')))
+        filer_dropdown = Select(driver.find_element(By.CLASS_NAME,'product_sort_container'))
+        filer_dropdown.select_by_visible_text("Price (low to high)")
+
+        price_elements = driver.find_elements(By.CLASS_NAME,'inventory_item_price')
+        prices = [float(price.text.replace("$","")) for price in price_elements]
+        try:
+            assert prices == sorted(prices), "Ordering of the items according to prices(low to high) failed"
+        except AssertionError as e:
+            print(f"Assertion failed: {e}")
+            take_screenshot(driver)
+            pytest.fail(str(e))
+
+    except TimeoutException:
+        pytest.fail("Timeout has occurred.")
+
+    logout_function(setup)
+
+def test_display_order_price_high_to_low(setup):
+    driver = setup
+    login_function(setup)
+    try:
+        WebDriverWait(driver,10).until(EC.visibility_of_element_located((By.CLASS_NAME,'select_container')))
+        filer_dropdown = Select(driver.find_element(By.CLASS_NAME,'product_sort_container'))
+        filer_dropdown.select_by_visible_text("Price (high to low)")
+
+        price_elements = driver.find_elements(By.CLASS_NAME,'inventory_item_price')
+        prices = [float(price.text.replace("$","")) for price in price_elements]
+        try:
+            assert prices == sorted(prices, reverse=True),"Ordering of the items according to prices(high to low) failed"
+        except AssertionError as e:
+            print(f"Assertion failed: {e}")
+            take_screenshot(driver)
+            pytest.fail(str(e))
+
+    except TimeoutException:
+        pytest.fail("Timeout has occurred.")
+
+    logout_function(setup)
 
